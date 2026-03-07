@@ -12,9 +12,9 @@
     "author": "ArthurZheng",
     "license": "Apache-2.0",
     "dependencies": {
-        "@actions/core": "^1.11.1",
-        "@actions/exec": "^1.1.1",
-        "glob": "^11.0.2",
+        "@actions/core": "^3.0.0",
+        "@actions/exec": "^3.0.0",
+        "glob": "^13.0.6",
         "unzipper": "^0.12.3"
     },
     "devDependencies": {
@@ -22,7 +22,7 @@
         "@types/node": "^24.11.0",
         "@types/unzipper": "^0.10.11",
         "@typescript-eslint/parser": "^8.56.1",
-        "@vercel/ncc": "^0.38.3",
+        "@vercel/ncc": "^0.38.4",
         "eslint": "^10.0.3",
         "eslint-config-prettier": "^10.1.8",
         "eslint-import-resolver-typescript": "^4.4.4",
