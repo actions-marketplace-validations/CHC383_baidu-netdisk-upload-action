@@ -11,6 +11,6 @@ steps:
     with:
       bduss: ${{ secrets.BDUSS }}
       stoken: ${{ secrets.STOKEN }}
-      target: "./build/**/*.zip"  # Supports glob patterns
+      target: "./build/**/*.zip" # Supports glob patterns
       remote-dir: "/Apps/Release/"
 ```
