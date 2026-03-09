@@ -2,6 +2,8 @@ import * as fs$3 from 'node:fs';
 import fs__default$1 from 'node:fs';
 import os$2 from 'node:os';
 import path$1, { win32, posix } from 'node:path';
+import require$$0$2, { Readable } from 'node:stream';
+import { finished } from 'node:stream/promises';
 import * as os$1 from 'os';
 import os__default from 'os';
 import 'crypto';
@@ -20,7 +22,6 @@ import require$$1 from 'util';
 import require$$0$1 from 'node:assert';
 import require$$0$3 from 'node:net';
 import require$$2 from 'node:http';
-import require$$0$2 from 'node:stream';
 import require$$0 from 'node:buffer';
 import require$$0$4 from 'node:util';
 import require$$7 from 'node:querystring';
@@ -42118,7 +42119,7 @@ var unzipExports = requireUnzip();
 async function run() {
     try {
         // Fixed BaiduPCS-Go version (latest release asset naming)
-        const VERSION = "3.9.6";
+        const baiduPcsGoVersion = "3.9.6";
         // Inputs from workflow
         const bduss = getInput("bduss", { required: true });
         const stoken = getInput("stoken", { required: true });
@@ -42127,38 +42128,11 @@ async function run() {
         // Determine download URL based on OS platform/arch
         const platform = os$2.platform();
         const arch = os$2.arch();
-        let assetName;
-        if (platform === "win32") {
-            if (arch === "x64") {
-                assetName = `BaiduPCS-Go-v${VERSION}-windows-x64.zip`;
-            }
-            else if (arch === "arm64") {
-                assetName = `BaiduPCS-Go-v${VERSION}-windows-arm.zip`;
-            }
-            else {
-                assetName = `BaiduPCS-Go-v${VERSION}-windows-x86.zip`;
-            }
-        }
-        else if (platform === "darwin") {
-            assetName =
-                arch === "arm64"
-                    ? `BaiduPCS-Go-v${VERSION}-darwin-osx-arm64.zip`
-                    : `BaiduPCS-Go-v${VERSION}-darwin-osx-amd64.zip`;
-        }
-        else if (arch === "arm64") {
-            assetName = `BaiduPCS-Go-v${VERSION}-linux-arm64.zip`;
-        }
-        else if (arch === "arm") {
-            assetName = `BaiduPCS-Go-v${VERSION}-linux-arm.zip`;
-        }
-        else {
-            assetName = `BaiduPCS-Go-v${VERSION}-linux-amd64.zip`;
-        }
-        const downloadUrl = `https://github.com/qjfoidnh/BaiduPCS-Go/releases/download/v${VERSION}/${assetName}`;
+        const { assetName, downloadUrl } = getAssetNameAndDownloadUrl(platform, arch, baiduPcsGoVersion);
         // Download the specified ZIP archive
         const zipPath = path$1.join(process.cwd(), assetName);
         info(`Downloading BaiduPCS-Go from: ${downloadUrl}`);
-        await exec("curl", ["-L", "-o", zipPath, downloadUrl]);
+        await downloadFile(downloadUrl, zipPath);
         // Extract the archive using unzipper
         const extractDirectory = path$1.join(process.cwd(), "baidupcs");
         fs__default$1.mkdirSync(extractDirectory, { recursive: true });
@@ -42206,6 +42180,47 @@ async function run() {
             setFailed(error.message);
         }
     }
+}
+function getAssetNameAndDownloadUrl(platform, arch, version) {
+    let assetName;
+    if (platform === "win32") {
+        if (arch === "x64") {
+            assetName = `BaiduPCS-Go-v${version}-windows-x64.zip`;
+        }
+        else if (arch === "arm64") {
+            assetName = `BaiduPCS-Go-v${version}-windows-arm.zip`;
+        }
+        else {
+            assetName = `BaiduPCS-Go-v${version}-windows-x86.zip`;
+        }
+    }
+    else if (platform === "darwin") {
+        assetName =
+            arch === "arm64"
+                ? `BaiduPCS-Go-v${version}-darwin-osx-arm64.zip`
+                : `BaiduPCS-Go-v${version}-darwin-osx-amd64.zip`;
+    }
+    else if (arch === "arm64") {
+        assetName = `BaiduPCS-Go-v${version}-linux-arm64.zip`;
+    }
+    else if (arch === "arm") {
+        assetName = `BaiduPCS-Go-v${version}-linux-arm.zip`;
+    }
+    else {
+        assetName = `BaiduPCS-Go-v${version}-linux-amd64.zip`;
+    }
+    const downloadUrl = `https://github.com/qjfoidnh/BaiduPCS-Go/releases/download/v${version}/${assetName}`;
+    return { assetName, downloadUrl };
+}
+async function downloadFile(url, destination) {
+    const response = await fetch(url);
+    if (!response.ok || !response.body) {
+        throw new Error(`Failed to download file: ${response.statusText}`);
+    }
+    const fileStream = fs__default$1.createWriteStream(destination);
+    Readable.fromWeb(response.body).pipe(fileStream);
+    await finished(fileStream);
+    info(`Download BaiduPCS-Go complete: ${destination}`);
 }
 
 void run();
