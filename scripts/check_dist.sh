@@ -6,6 +6,8 @@
 # source files. This script ensures the `dist/` directory contains the
 # expected transpiled code.
 
+pnpm package
+
 if [ ! -d dist/ ]; then
   echo "Expected dist/ directory does not exist.  See status below:"
   ls -la ./
