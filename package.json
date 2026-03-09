@@ -2,9 +2,14 @@
   "name": "baidu-netdisk-upload-action",
   "version": "1.0.0",
   "description": "Github action to upload files to Baidu Netdisk using BaiduPCS-Go",
+  "license": "Apache-2.0",
   "type": "module",
   "main": "src/index.ts",
-  "repository": "git@github.com:openblockcc/baidu-netdisk-upload-action.git",
+  "repository": "git@github.com:CHC383/baidu-netdisk-upload-action.git",
+  "author": "Henry Cai <huacong.cai@gmail.com>",
+  "contributors": [
+    "Arthur Zheng <arthurzheng150@gmail.com>"
+  ],
   "scripts": {
     "format:write": "prettier --experimental-cli --write .",
     "format:check": "prettier --experimental-cli --list-different .",
@@ -13,8 +18,6 @@
     "package": "rimraf ./dist && rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "prepare": "husky"
   },
-  "author": "ArthurZheng",
-  "license": "Apache-2.0",
   "dependencies": {
     "@actions/core": "^3.0.0",
     "@actions/exec": "^3.0.0",

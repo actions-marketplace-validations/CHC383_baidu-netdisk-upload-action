@@ -1,6 +1,6 @@
 name: Baidu Netdisk Upload
 description: Use BaiduPCS-Go to upload files to Baidu Netdisk
-author: Arthur Zheng <arthurzheng150@gmail.com>
+author: Henry Cai <huacong.cai@gmail.com>
 runs:
   using: node24
   main: dist/index.js
