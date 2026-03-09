@@ -13,7 +13,11 @@ export default defineConfig(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["eslint.config.ts", "prettier.config.ts"],
+          allowDefaultProject: [
+            "eslint.config.ts",
+            "prettier.config.ts",
+            "rollup.config.ts",
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
         parser: tsParser,
