@@ -9,11 +9,9 @@
   ],
   rangeStrategy: "bump",
   postUpdateOptions: ["pnpmDedupe"],
-  postUpgradeTasks: [
-    {
-      command: "pnpm check-dist",
-    },
-  ],
+  postUpgradeTasks: {
+    commands: ["pnpm check-dist"],
+  },
   prHourlyLimit: 0,
   packageRules: [
     {
