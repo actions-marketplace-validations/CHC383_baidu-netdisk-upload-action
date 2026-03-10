@@ -32141,10 +32141,7 @@ async function run() {
         info("Logging in to Baidu Cloud Disk");
         await exec(exePath, ["login", `-bduss=${bduss}`, `-stoken=${stoken}`]);
         // Find files matching the target pattern
-        const files = globSync(targetPattern, {
-            withFileTypes: true,
-            exclude: (fileName) => !fileName.isFile(),
-        });
+        const files = globSync(targetPattern, { withFileTypes: true }).filter((dirent) => dirent.isFile());
         if (files.length === 0) {
             throw new Error(`No files matched pattern: ${targetPattern}`);
         }

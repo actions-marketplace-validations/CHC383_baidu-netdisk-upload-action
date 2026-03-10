@@ -1,4 +1,4 @@
-import fs, { Dirent, globSync } from "node:fs";
+import fs, { globSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -53,10 +53,9 @@ export async function run(): Promise<void> {
     await exec(exePath, ["login", `-bduss=${bduss}`, `-stoken=${stoken}`]);
 
     // Find files matching the target pattern
-    const files = globSync(targetPattern, {
-      withFileTypes: true,
-      exclude: (fileName: Dirent) => !fileName.isFile(),
-    });
+    const files = globSync(targetPattern, { withFileTypes: true }).filter(
+      (dirent) => dirent.isFile(),
+    );
     if (files.length === 0) {
       throw new Error(`No files matched pattern: ${targetPattern}`);
     }
