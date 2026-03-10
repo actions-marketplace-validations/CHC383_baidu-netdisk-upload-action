@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   # One workflow run at a time per branch.
   group: ${{ github.workflow }}-${{ github.ref }}
