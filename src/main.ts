@@ -9,12 +9,11 @@ import { exec } from "@actions/exec";
 import AdmZip from "adm-zip";
 import { glob } from "glob";
 
+// https://github.com/qjfoidnh/BaiduPCS-Go/releases
+const BAIDU_PCS_GO_VERSION = "4.0.0";
+
 export async function run(): Promise<void> {
   try {
-    // https://github.com/qjfoidnh/BaiduPCS-Go/releases
-    // BaiduPCS-Go version for assert url and naming
-    const baiduPcsGoVersion = "4.0.0";
-
     // Inputs from workflow
     const bduss = core.getInput("bduss", { required: true });
     const stoken = core.getInput("stoken", { required: true });
@@ -27,7 +26,7 @@ export async function run(): Promise<void> {
     const { assetName, downloadUrl } = getAssetNameAndDownloadUrl(
       platform,
       arch,
-      baiduPcsGoVersion,
+      BAIDU_PCS_GO_VERSION,
     );
 
     // Download the specified ZIP archive
@@ -93,27 +92,57 @@ function getAssetNameAndDownloadUrl(
   assetName: string;
   downloadUrl: string;
 } {
-  let assetName;
-  if (platform === "win32") {
-    if (arch === "x64") {
-      assetName = `BaiduPCS-Go-v${version}-windows-x64.zip`;
-    } else if (arch === "arm64") {
-      assetName = `BaiduPCS-Go-v${version}-windows-arm.zip`;
-    } else {
-      assetName = `BaiduPCS-Go-v${version}-windows-x86.zip`;
+  let assetName: string | undefined;
+  // https://github.com/nodejs/node/blob/main/BUILDING.md#supported-platforms
+  // https://github.com/qjfoidnh/BaiduPCS-Go/releases
+  switch (platform) {
+    case "win32": {
+      if (arch === "x64") {
+        assetName = `BaiduPCS-Go-v${version}-windows-x64.zip`;
+      } else if (arch === "arm64") {
+        assetName = `BaiduPCS-Go-v${version}-windows-arm.zip`;
+      }
+      break;
     }
-  } else if (platform === "darwin") {
-    assetName =
-      arch === "arm64"
-        ? `BaiduPCS-Go-v${version}-darwin-osx-arm64.zip`
-        : `BaiduPCS-Go-v${version}-darwin-osx-amd64.zip`;
-  } else if (arch === "arm64") {
-    assetName = `BaiduPCS-Go-v${version}-linux-arm64.zip`;
-  } else if (arch === "arm") {
-    assetName = `BaiduPCS-Go-v${version}-linux-arm.zip`;
-  } else {
-    assetName = `BaiduPCS-Go-v${version}-linux-amd64.zip`;
+    case "darwin": {
+      if (arch === "arm64") {
+        assetName = `BaiduPCS-Go-v${version}-darwin-osx-arm64.zip`;
+      } else if (arch === "x64") {
+        assetName = `BaiduPCS-Go-v${version}-darwin-osx-amd64.zip`;
+      }
+      break;
+    }
+    case "linux": {
+      switch (arch) {
+        case "x64": {
+          assetName = `BaiduPCS-Go-v${version}-linux-amd64.zip`;
+          break;
+        }
+        case "arm64": {
+          assetName = `BaiduPCS-Go-v${version}-linux-arm64.zip`;
+          break;
+        }
+        case "arm": {
+          assetName = `BaiduPCS-Go-v${version}-linux-arm.zip`;
+          break;
+        }
+      }
+      break;
+    }
+    case "freebsd": {
+      if (arch === "x64") {
+        assetName = `BaiduPCS-Go-v${version}-freebsd-amd64.zip`;
+      }
+      break;
+    }
   }
+
+  if (assetName === undefined) {
+    throw new Error(
+      `Unsupported platform and architecture: ${platform} ${arch}`,
+    );
+  }
+
   const downloadUrl = `https://github.com/qjfoidnh/BaiduPCS-Go/releases/download/v${version}/${assetName}`;
   return { assetName, downloadUrl };
 }
