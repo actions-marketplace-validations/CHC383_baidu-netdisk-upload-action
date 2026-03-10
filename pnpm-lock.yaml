@@ -17,9 +17,6 @@ importers:
       adm-zip:
         specifier: ^0.5.16
         version: 0.5.16
-      glob:
-        specifier: ^13.0.6
-        version: 13.0.6
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1

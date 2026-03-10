@@ -1,4 +1,4 @@
-import fs from "node:fs";
+import fs, { Dirent, globSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -7,7 +7,6 @@ import { finished } from "node:stream/promises";
 import * as core from "@actions/core";
 import { exec } from "@actions/exec";
 import AdmZip from "adm-zip";
-import { glob } from "glob";
 
 // https://github.com/qjfoidnh/BaiduPCS-Go/releases
 const BAIDU_PCS_GO_VERSION = "4.0.0";
@@ -34,49 +33,40 @@ export async function run(): Promise<void> {
     core.info(`Downloading BaiduPCS-Go from: ${downloadUrl}`);
     await downloadFile(downloadUrl, zipPath);
 
-    // Extract the archive using unzipper
+    // Extract the archive
     const extractDirectory = path.join(process.cwd(), "baidupcs");
-    fs.mkdirSync(extractDirectory, { recursive: true });
-    core.info("Extracting archive using adm-zip");
+    fs.mkdirSync(extractDirectory);
+    core.info("Extracting archive");
     const zipFile = new AdmZip(zipPath);
     zipFile.extractAllTo(extractDirectory, true);
 
-    // Locate the executable recursively in extractDir
-    const exePattern =
-      platform === "win32" ? "**/BaiduPCS-Go.exe" : "**/BaiduPCS-Go";
-    const executables = glob
-      .sync(exePattern, {
-        cwd: extractDirectory,
-        absolute: true,
-        nocase: true,
-      })
-      .filter((p) => {
-        try {
-          return fs.statSync(p).isFile();
-        } catch {
-          return false;
-        }
-      });
-    if (executables.length === 0) {
-      throw new Error(`Executable not found in path: ${extractDirectory}`);
-    }
-    const exePath = executables[0];
-    fs.chmodSync(exePath, 0o755);
+    // Locate the executable
+    const exePath = path.join(
+      extractDirectory,
+      path.basename(assetName, ".zip"),
+      platform === "win32" ? "BaiduPCS-Go.exe" : "BaiduPCS-Go",
+    );
+    fs.chmodSync(exePath, fs.constants.S_IRWXU);
 
     // Log in to Baidu Cloud Disk
     core.info("Logging in to Baidu Cloud Disk");
     await exec(exePath, ["login", `-bduss=${bduss}`, `-stoken=${stoken}`]);
 
     // Find files matching the target pattern
-    const matches = glob.sync(targetPattern, { nodir: true });
-    if (matches.length === 0)
+    const files = globSync(targetPattern, {
+      withFileTypes: true,
+      exclude: (fileName: Dirent) => !fileName.isFile(),
+    });
+    if (files.length === 0) {
       throw new Error(`No files matched pattern: ${targetPattern}`);
-
-    // Upload each matched file
-    for (const filePath of matches) {
-      core.info(`Uploading file: ${filePath}`);
-      await exec(exePath, ["upload", filePath, remoteDirectory]);
     }
+
+    // Upload files
+    const filePaths = files
+      .map((dirent) => path.join(dirent.parentPath, dirent.name))
+      .join(" ");
+    core.info(`Uploading files: ${filePaths}`);
+    await exec(exePath, ["upload", filePaths, remoteDirectory]);
   } catch (error) {
     if (error instanceof Error) {
       core.setFailed(error.message);
