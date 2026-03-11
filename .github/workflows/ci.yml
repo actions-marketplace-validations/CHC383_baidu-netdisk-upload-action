@@ -16,28 +16,94 @@ concurrency:
 
 jobs:
   test-typescript:
+    name: TypeScript Tests
     runs-on: ubuntu-latest
 
+    outputs:
+      dist: ${{ steps.filter.outputs.dist }}
+
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v6
 
       - name: Install pnpm
+        id: setup-pnpm
         uses: pnpm/action-setup@v4
 
       - name: Setup Node
+        id: setup-node
         uses: actions/setup-node@v6
         with:
           node-version-file: .tool-versions
           cache: pnpm
 
-      - name: Install dependencies
+      - name: Install Dependencies
+        id: pnpm-install
         run: pnpm install --frozen-lockfile
 
-      - name: Format check
+      - name: Format Check
+        id: format-check
         run: pnpm format:check
 
-      - name: Lint check
+      - name: Lint Check
+        id: lint-check
         run: pnpm lint
 
-      - name: dist check
+      - name: dist Check
+        id: dist-check
         run: scripts/check_dist.sh
+
+      - name: Detect dist Changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            dist:
+              - 'dist/**'
+
+  test-action:
+    name: GitHub Actions Test
+    runs-on: ubuntu-latest
+    needs: test-typescript
+    # Disable on PR without write permissions
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v6
+
+      - name: Set Up Test Files
+        id: setup-test-files
+        env:
+          TEST_DIR: ./test_files
+        run: |
+          mkdir -p $TEST_DIR
+          echo "Upload file 1" > $TEST_DIR/upload-1.txt
+          echo "Upload file 2" > $TEST_DIR/upload-2.txt
+          echo "Not upload file 1" > $TEST_DIR/not-upload-1.txt
+
+      - name: Test Local Action
+        id: test-action
+        uses: ./
+        with:
+          bduss: ${{ secrets.BDUSS }}
+          stoken: ${{ secrets.STOKEN }}
+          target: "./test_files/upload*"
+          remote-dir: "/baidu-netdisk-upload-action-test/"
+          upload-policy: "overwrite"
+
+      - name: Verify Results
+        id: verify-results
+        env:
+          BDUSS: ${{ secrets.BDUSS }}
+          STOKEN: ${{ secrets.STOKEN }}
+        run: |
+          BAIDUPCS_GO_VERSION=$(grep -m 1 "const BAIDU_PCS_GO_VERSION = " ./dist/index.js | sed 's/.*BAIDU_PCS_GO_VERSION = "\(.*\)";/\1/')
+          BAIDUPCS_GO_EXECUTABLE=./baidupcs/BaiduPCS-Go-v$BAIDUPCS_GO_VERSION-linux-amd64/BaiduPCS-Go
+          DATE=$(date +%F)
+          $BAIDUPCS_GO_EXECUTABLE login -bduss="$BDUSS" -stoken="$STOKEN"
+          $BAIDUPCS_GO_EXECUTABLE search -path=/baidu-netdisk-upload-action-test/ upload-1.txt | grep -q "$DATE"
+          $BAIDUPCS_GO_EXECUTABLE search -path=/baidu-netdisk-upload-action-test/ upload-2.txt | grep -q "$DATE"
+          $BAIDUPCS_GO_EXECUTABLE search -path=/baidu-netdisk-upload-action-test/ not-upload-1.txt | grep -q "文件总数: 0"
