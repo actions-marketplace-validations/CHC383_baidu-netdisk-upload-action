@@ -21,6 +21,7 @@ jobs:
 
     outputs:
       dist: ${{ steps.filter.outputs.dist }}
+      ci: ${{ steps.filter.outputs.ci }}
 
     steps:
       - name: Checkout
@@ -61,13 +62,18 @@ jobs:
           filters: |
             dist:
               - 'dist/**'
+            ci:
+              - '.github/workflows/ci.yml'
 
   test-action:
     name: GitHub Actions Test
     runs-on: ubuntu-latest
     needs: test-typescript
-    # Only run when dist changes and disable on PR without write permissions
-    if: ${{ needs.test-typescript.outputs.dist == 'true' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]' }}
+    # Only run when dist or workflow has benn changed and disable on PR without write permissions
+    if: |
+      (needs.test-typescript.outputs.dist == 'true' || needs.test-typescript.outputs.ci == 'true') && 
+      github.event.pull_request.head.repo.full_name == github.repository && 
+      github.actor != 'dependabot[bot]'
 
     steps:
       - name: Checkout
@@ -97,16 +103,11 @@ jobs:
 
       - name: Verify Results
         id: verify-results
-        env:
-          BDUSS: ${{ secrets.BDUSS }}
-          STOKEN: ${{ secrets.STOKEN }}
-          REMOTE_DIR: "/baidu-netdisk-upload-action-test/"
+        # BaiduPCS-Go has been logged in through the action above
         run: |
-          BAIDUPCS_GO_VERSION=$(grep -m 1 "const BAIDU_PCS_GO_VERSION = " ./dist/index.js | sed 's/.*BAIDU_PCS_GO_VERSION = "\(.*\)";/\1/')
-          BAIDUPCS_GO_EXECUTABLE=./baidupcs/BaiduPCS-Go-v$BAIDUPCS_GO_VERSION-linux-amd64/BaiduPCS-Go
+          BAIDUPCS_GO_EXECUTABLE=$(find ./baidupcs -name BaiduPCS-Go)
           DATE=$(TZ=Asia/Shanghai date +%F)
-          $BAIDUPCS_GO_EXECUTABLE login -bduss="$BDUSS" -stoken="$STOKEN"
-          LS_OUTPUT=$($BAIDUPCS_GO_EXECUTABLE ls $REMOTE_DIR)
+          LS_OUTPUT=$($BAIDUPCS_GO_EXECUTABLE ls /baidu-netdisk-upload-action-test/)
           grep --quiet "$DATE.*upload-1.txt" <<< "$LS_OUTPUT"
           grep --quiet "$DATE.*upload-2.txt" <<< "$LS_OUTPUT"
           grep --quiet --invert-match "not-upload-1.txt" <<< "$LS_OUTPUT"
