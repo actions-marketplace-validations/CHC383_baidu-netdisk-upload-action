@@ -32137,7 +32137,12 @@ async function run() {
         const zipFile = new AdmZip(zipPath);
         zipFile.extractAllTo(extractDirectory, true);
         // Locate the executable
-        const exePath = path$1.join(extractDirectory, path$1.basename(assetName, ".zip"), platform === "win32" ? "BaiduPCS-Go.exe" : "BaiduPCS-Go");
+        const exePattern = platform === "win32" ? "**/BaiduPCS-Go.exe" : "**/BaiduPCS-Go";
+        const exePaths = globSync(exePattern, { cwd: extractDirectory });
+        if (exePaths.length === 0) {
+            throw new Error(`Executable not found in path: ${extractDirectory}`);
+        }
+        const exePath = path$1.join(extractDirectory, exePaths[0]);
         fs$1.chmodSync(exePath, fs$1.constants.S_IRWXU);
         // Log in to Baidu Netdisk
         info("Logging in to Baidu Netdisk");
