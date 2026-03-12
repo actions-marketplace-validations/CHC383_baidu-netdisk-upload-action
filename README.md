@@ -4,6 +4,18 @@ A cross-platform (Linux/macOS/Windows) reusable GitHub Action that uses
 [qjfoidnh/BaiduPCS-Go](https://github.com/qjfoidnh/BaiduPCS-Go) to upload
 files to Baidu Netdisk.
 
+## About this Fork
+
+This repository started as a fork of
+[openblockcc/baidu-netdisk-upload-action](https://github.com/openblockcc/baidu-netdisk-upload-action).  
+It has since been modernized with several structural improvements, including:
+
+- TypeScript migration
+- Dependency updates
+- Support for the latest Node.js LTS runtime
+- Reduced dependency footprint
+- Codebase refactoring and modernization
+
 ## Usage Example
 
 ```yaml
