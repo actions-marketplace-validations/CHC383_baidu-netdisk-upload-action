@@ -1,68 +1,66 @@
 import fs, { globSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { Readable } from "node:stream";
-import { finished } from "node:stream/promises";
 
 import * as core from "@actions/core";
 import { exec } from "@actions/exec";
-import AdmZip from "adm-zip";
+import * as tc from "@actions/tool-cache";
 
-// https://github.com/qjfoidnh/BaiduPCS-Go/releases
-const BAIDU_PCS_GO_VERSION = "4.0.0";
+// renovate: datasource=github-releases depName=qjfoidnh/BaiduPCS-Go
+const BAIDU_PCS_GO_VERSION = "v4.0.1";
 
 export async function run(): Promise<void> {
   try {
     // Inputs from workflow
     const bduss = core.getInput("bduss", { required: true });
     const stoken = core.getInput("stoken", { required: true });
-    const targetPattern = core.getInput("target", { required: true });
+    const targetPatterns = core.getInput("target", { required: true });
     const remoteDirectory = core.getInput("remote-dir", { required: true });
     const uploadPolicy = core.getInput("upload-policy") || "skip";
 
     // Determine download URL based on OS platform/arch
     const platform = os.platform();
     const arch = os.arch();
-    const { assetName, downloadUrl } = getAssetNameAndDownloadUrl(
-      platform,
-      arch,
-      BAIDU_PCS_GO_VERSION,
-    );
+    const downloadUrl = getDownloadUrl(platform, arch, BAIDU_PCS_GO_VERSION);
 
-    // Download the specified ZIP archive
-    const zipPath = path.join(process.cwd(), assetName);
-    core.info(`Downloading BaiduPCS-Go from: ${downloadUrl}`);
-    await downloadFile(downloadUrl, zipPath);
-    core.info(`BaiduPCS-Go is downloaded to: ${zipPath}`);
-
-    // Extract the archive
-    const extractDirectory = path.join(process.cwd(), "baidupcs");
-    core.info(`Extracting BaiduPCS-Go archive to: ${extractDirectory}`);
-    fs.mkdirSync(extractDirectory);
-    const zipFile = new AdmZip(zipPath);
-    zipFile.extractAllTo(extractDirectory, true);
+    // Download and extract the archive, reusing the runner's tool cache when present
+    let toolDirectory = tc.find("BaiduPCS-Go", BAIDU_PCS_GO_VERSION);
+    if (toolDirectory) {
+      core.info(`Found BaiduPCS-Go in tool cache: ${toolDirectory}`);
+    } else {
+      core.info(`Downloading BaiduPCS-Go from: ${downloadUrl}`);
+      const zipPath = await tc.downloadTool(downloadUrl);
+      const extractDirectory = await tc.extractZip(zipPath);
+      toolDirectory = await tc.cacheDir(
+        extractDirectory,
+        "BaiduPCS-Go",
+        BAIDU_PCS_GO_VERSION,
+      );
+      core.info(`BaiduPCS-Go is cached at: ${toolDirectory}`);
+    }
 
     // Locate the executable
     const exePattern =
       platform === "win32" ? "**/BaiduPCS-Go.exe" : "**/BaiduPCS-Go";
-    const exePaths = globSync(exePattern, { cwd: extractDirectory });
+    const exePaths = globSync(exePattern, { cwd: toolDirectory });
     if (exePaths.length === 0) {
-      throw new Error(`Executable not found in path: ${extractDirectory}`);
+      throw new Error(`Executable not found in path: ${toolDirectory}`);
     }
-    const exePath = path.join(extractDirectory, exePaths[0]);
+    const exePath = path.join(toolDirectory, exePaths[0]);
     fs.chmodSync(exePath, fs.constants.S_IRWXU);
 
     // Log in to Baidu Netdisk
     core.info("Logging in to Baidu Netdisk");
     await exec(exePath, ["login", `-bduss=${bduss}`, `-stoken=${stoken}`]);
 
-    // Find files matching the target pattern
-    core.info(`Finding files to upload with pattern: ${targetPattern}`);
-    const files = globSync(targetPattern, { withFileTypes: true }).filter(
-      (dirent) => dirent.isFile(),
+    // Find files matching the target patterns
+    const patterns = targetPatterns.split(";").map((p) => p.trim());
+    core.info(`Finding files to upload with pattern: ${patterns}`);
+    const files = globSync(patterns, { withFileTypes: true }).filter((dirent) =>
+      dirent.isFile(),
     );
     if (files.length === 0) {
-      throw new Error(`No files matched pattern: ${targetPattern}`);
+      throw new Error(`No files matched pattern: ${patterns}`);
     }
 
     // Upload files
@@ -84,46 +82,43 @@ export async function run(): Promise<void> {
   }
 }
 
-function getAssetNameAndDownloadUrl(
+function getDownloadUrl(
   platform: NodeJS.Platform,
   arch: NodeJS.Architecture,
   version: string,
-): {
-  assetName: string;
-  downloadUrl: string;
-} {
+): string {
   let assetName: string | undefined;
   // https://github.com/nodejs/node/blob/main/BUILDING.md#supported-platforms
   // https://github.com/qjfoidnh/BaiduPCS-Go/releases
   switch (platform) {
     case "win32": {
       if (arch === "x64") {
-        assetName = `BaiduPCS-Go-v${version}-windows-x64.zip`;
+        assetName = `BaiduPCS-Go-${version}-windows-x64.zip`;
       } else if (arch === "arm64") {
-        assetName = `BaiduPCS-Go-v${version}-windows-arm.zip`;
+        assetName = `BaiduPCS-Go-${version}-windows-arm.zip`;
       }
       break;
     }
     case "darwin": {
       if (arch === "arm64") {
-        assetName = `BaiduPCS-Go-v${version}-darwin-osx-arm64.zip`;
+        assetName = `BaiduPCS-Go-${version}-darwin-osx-arm64.zip`;
       } else if (arch === "x64") {
-        assetName = `BaiduPCS-Go-v${version}-darwin-osx-amd64.zip`;
+        assetName = `BaiduPCS-Go-${version}-darwin-osx-amd64.zip`;
       }
       break;
     }
     case "linux": {
       switch (arch) {
         case "x64": {
-          assetName = `BaiduPCS-Go-v${version}-linux-amd64.zip`;
+          assetName = `BaiduPCS-Go-${version}-linux-amd64.zip`;
           break;
         }
         case "arm64": {
-          assetName = `BaiduPCS-Go-v${version}-linux-arm64.zip`;
+          assetName = `BaiduPCS-Go-${version}-linux-arm64.zip`;
           break;
         }
         case "arm": {
-          assetName = `BaiduPCS-Go-v${version}-linux-arm.zip`;
+          assetName = `BaiduPCS-Go-${version}-linux-arm.zip`;
           break;
         }
       }
@@ -131,7 +126,7 @@ function getAssetNameAndDownloadUrl(
     }
     case "freebsd": {
       if (arch === "x64") {
-        assetName = `BaiduPCS-Go-v${version}-freebsd-amd64.zip`;
+        assetName = `BaiduPCS-Go-${version}-freebsd-amd64.zip`;
       }
       break;
     }
@@ -143,16 +138,5 @@ function getAssetNameAndDownloadUrl(
     );
   }
 
-  const downloadUrl = `https://github.com/qjfoidnh/BaiduPCS-Go/releases/download/v${version}/${assetName}`;
-  return { assetName, downloadUrl };
-}
-
-async function downloadFile(url: string, destination: string) {
-  const response = await fetch(url);
-  if (!response.ok || !response.body) {
-    throw new Error(`Failed to download file: ${response.statusText}`);
-  }
-  const fileStream = fs.createWriteStream(destination);
-  Readable.fromWeb(response.body).pipe(fileStream);
-  await finished(fileStream);
+  return `https://github.com/qjfoidnh/BaiduPCS-Go/releases/download/${version}/${assetName}`;
 }

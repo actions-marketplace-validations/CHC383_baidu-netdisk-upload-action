@@ -1,25 +1,48 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
+    "target": "esnext",
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+
+    "strict": true,
+    "alwaysStrict": true,
+    "strictNullChecks": true,
+
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowUnreachableCode": false,
+    "noFallthroughCasesInSwitch": true,
+
     "declaration": false,
     "declarationMap": false,
+
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true,
+    "checkJs": true,
+    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
-    "lib": ["ESNext"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "newLine": "lf",
-    "noImplicitAny": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": false,
-    "outDir": "./dist",
-    "pretty": true,
     "resolveJsonModule": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "target": "ESNext"
+
+    "pretty": true,
+
+    // https://github.com/tsconfig/bases/blob/main/bases/node-ts.json
+    "rewriteRelativeImportExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+
+    "rootDir": ".",
+    "outDir": "./dist",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "exclude": ["dist", "node_modules"],
   "include": ["src"]

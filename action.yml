@@ -8,7 +8,7 @@ branding:
 
 runs:
   using: node24
-  main: dist/index.js
+  main: dist/index.mjs
 
 inputs:
   bduss:
@@ -18,13 +18,16 @@ inputs:
     description: STOKEN for Baidu Netdisk authentication
     required: true
   target:
-    description: Local file or directory pattern to upload (supports glob syntax)
+    description:
+      Local file or directory pattern to upload (supports glob syntax), use
+      semicolon (;) to separate multiple patterns
     required: true
   remote-dir:
     description: Target directory path on Baidu Netdisk
     required: true
   upload-policy:
-    description: BaiduPCS-Go upload policy - "skip" (default), "overwrite", "rsync"
+    description:
+      BaiduPCS-Go upload policy - "skip" (default), "overwrite", "rsync"
     required: false
     default: "skip"
 

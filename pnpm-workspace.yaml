@@ -1,2 +1,4 @@
-onlyBuiltDependencies:
-  - unrs-resolver
+dedupePeers: true
+allowBuilds:
+  lefthook: true
+  unrs-resolver: true

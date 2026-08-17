@@ -1,0 +1,18 @@
+pre-commit:
+  jobs:
+    - name: Update lockfile
+      glob: "package.json"
+      run: |
+        pnpm install
+        pnpm dedupe --ignore-scripts
+      stage_fixed: true
+
+    - name: Biome check and fix
+      glob: "src/**/*.ts"
+      run: pnpm biome:check-fix {staged_files}
+      stage_fixed: true
+
+    - name: Update dist files
+      glob: "{src/**/*.ts,package.json}"
+      run: pnpm package
+      stage_fixed: true

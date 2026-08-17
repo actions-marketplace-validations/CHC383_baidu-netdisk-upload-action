@@ -1,0 +1,60 @@
+name: Renovate Post-Upgrade Build
+
+on:
+  push:
+    branches:
+      - "renovate/**" # Triggers on any branch created by Renovate
+
+permissions:
+  contents: write
+
+concurrency:
+  group: renovate-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-dist:
+    # Prevent infinite loops when the workflow pushes its own commit
+    if: github.actor == 'renovate[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.RENOVATE_BUILD_PAT }}
+
+      - name: Install pnpm
+        id: setup-pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        id: setup-node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .tool-versions
+          cache: pnpm
+
+      - name: Install Dependencies
+        id: pnpm-install
+        run: pnpm install --frozen-lockfile
+
+      - name: Update dist
+        run: pnpm package
+
+      - name: Commit and Push dist changes
+        run: |
+          # Only proceed if the build command actually modified or added files in dist
+          if [ -n "$(git status --porcelain dist/)" ]; then
+            git add dist/
+            
+            # Committing as renovate[bot] keeps Renovate treating the branch as
+            # unmodified, so it will still rebase/update it.
+            git config --local user.name "renovate[bot]"
+            git config --local user.email "29139614+renovate[bot]@users.noreply.github.com"
+            
+            git commit -m "chore(dist): automated dist update"
+            git push
+          else
+            echo "No changes detected in dist folder."
+          fi
