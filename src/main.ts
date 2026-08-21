@@ -7,7 +7,7 @@ import { exec } from "@actions/exec";
 import * as tc from "@actions/tool-cache";
 
 // renovate: datasource=github-releases depName=qjfoidnh/BaiduPCS-Go
-const BAIDU_PCS_GO_VERSION = "v4.0.1";
+const BAIDU_PCS_GO_VERSION = "v4.0.2";
 
 export async function run(): Promise<void> {
   try {

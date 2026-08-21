@@ -19287,7 +19287,7 @@ function _getGlobal(key, defaultValue) {
 }
 //#endregion
 //#region src/main.ts
-const BAIDU_PCS_GO_VERSION = "v4.0.1";
+const BAIDU_PCS_GO_VERSION = "v4.0.2";
 async function run() {
 	try {
 		const bduss = getInput("bduss", { required: true });
