@@ -26,8 +26,7 @@ inputs:
     description: Target directory path on Baidu Netdisk
     required: true
   upload-policy:
-    description:
-      BaiduPCS-Go upload policy - "skip" (default), "overwrite", "rsync"
+    description: BaiduPCS-Go upload policy - "skip" (default), "overwrite", "rsync"
     required: false
     default: "skip"
 
